@@ -162,7 +162,7 @@ def process(installation: Installation, output: Path, stop_after: str | None = N
     if any(not s.get("zh", "").strip() for s in segments):
         print("[2/4] DeepSeek V4 Flash 翻译；仅日文文本发送至 DeepSeek。", flush=True)
         try:
-            installation.translate(segments)
+            installation.translate(segments, checkpoint=lambda: save_json(transcript, segments))
         finally:
             save_json(transcript, segments)
     if stop_after == "translate":
@@ -189,7 +189,7 @@ def process(installation: Installation, output: Path, stop_after: str | None = N
         )
         fingerprint = hashlib.sha256(
             json.dumps(
-                {"zh": segment["zh"], "target": b - a, "version": 1},
+                {"zh": segment["zh"], "target": b - a, "version": 2, "tts_backend": "indextts2.0"},
                 ensure_ascii=False,
                 sort_keys=True,
             ).encode()
@@ -211,7 +211,7 @@ def process(installation: Installation, output: Path, stop_after: str | None = N
             )
     if tasks:
         print(
-            f"[3/4] IndexTTS-2.5 克隆音色与逐句风格（{len(tasks)} 句）；进度见 {workspace / 'tts.log'}",
+            f"[3/4] IndexTTS-2.0 克隆音色与逐句风格（{len(tasks)} 句）；进度见 {workspace / 'tts.log'}",
             flush=True,
         )
         installation.synthesize(tasks, workspace)
@@ -260,7 +260,7 @@ def process(installation: Installation, output: Path, stop_after: str | None = N
             "models": {
                 "asr": "Parakeet CTC 1.1B Japanese",
                 "translation": "deepseek-v4-flash",
-                "tts": "IndexTTS-2.5",
+                "tts": "IndexTTS-2.0",
                 "spatial": "v1 cue transfer + complex RTF v2; neither is a neural model",
             },
             "limitations": [
@@ -292,20 +292,29 @@ def main(argv=None) -> int:
         help="允许单声道，仅测试配音，不会凭空恢复空间",
     )
     run.add_argument("--stop-after", choices=["asr", "translate"])
+    run.add_argument("--all-methods", action="store_true", help="完成配音后生成五种空间方案对照")
     resume = subs.add_parser("resume", help="继续运行，可先修改 transcript.json 中的中文")
     resume.add_argument("output", type=Path)
     resume.add_argument("--stop-after", choices=["asr", "translate"])
+    resume.add_argument("--all-methods", action="store_true", help="完成配音后生成五种空间方案对照")
     compare = subs.add_parser(
         "compare", help="复用已有中文缓存，在新目录生成 RTF/旧版等响度对照，不调用 API"
     )
     compare.add_argument("output", type=Path)
     compare.add_argument("--out", type=Path)
+    compare.add_argument(
+        "--all-methods", action="store_true", help="增加实测 HRTF 和 Meta 神经双耳模型"
+    )
     args = parser.parse_args(argv)
     installation = Installation(args.asmr_root)
+    if getattr(args, "all_methods", False):
+        from spatial_assets import verify_assets
+
+        verify_assets()
     if args.command == "compare":
         from compare import compare_run
 
-        compare_run(installation, args.output.resolve(), args.out)
+        compare_run(installation, args.output.resolve(), args.out, args.all_methods)
         return 0
     if args.command == "doctor":
         checks = installation.doctor()
@@ -314,6 +323,10 @@ def main(argv=None) -> int:
         return 0 if all(checks.values()) else 1
     if args.command == "resume":
         process(installation, args.output.resolve(), args.stop_after)
+        if args.all_methods and not args.stop_after:
+            from compare import compare_run
+
+            compare_run(installation, args.output.resolve(), all_methods=True)
         return 0
     original = args.input.resolve()
     if not original.is_file():
@@ -382,6 +395,10 @@ def main(argv=None) -> int:
     if info.channels == 1:
         print("注意：单声道测试，输出没有恢复原本不存在的空间信息。", flush=True)
     process(installation, output, args.stop_after)
+    if args.all_methods and not args.stop_after:
+        from compare import compare_run
+
+        compare_run(installation, output, all_methods=True)
     return 0
 
 

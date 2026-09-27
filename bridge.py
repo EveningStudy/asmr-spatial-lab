@@ -56,7 +56,7 @@ class Installation:
 
     @property
     def runtime(self) -> Path:
-        return self.home / "runtimes/index-tts-2.5"
+        return self.home / "runtimes/index-tts"
 
     @property
     def tts_python(self) -> Path:
@@ -85,10 +85,10 @@ class Installation:
         resources = {
             "Parakeet 1.1B": self.asr_model,
             "CrispASR": self.crisp,
-            "IndexTTS-2.5 Python": self.tts_python,
+            "IndexTTS-2.0 Python": self.tts_python,
             **{
-                f"IndexTTS-2.5 {name}": self.runtime / "checkpoints" / name
-                for name in ("config.yaml", "gpt.pth", "s2mel.pth", "codec.pth")
+                f"IndexTTS-2.0 {name}": self.runtime / "checkpoints" / name
+                for name in ("config.yaml", "gpt.pth", "s2mel.pth", "bpe.model")
             },
         }
         return {
@@ -192,42 +192,47 @@ class Installation:
             raise RuntimeError("Parakeet 未识别到带时间戳的日语，请先检查原音频。")
         return expand_ctc_boundaries(result, len(mono) / rate)
 
-    def translate(self, segments: list[dict]) -> None:
+    def translate(self, segments: list[dict], checkpoint=None) -> None:
         from asmr_dubber.models import Sentence
         from asmr_dubber.translation import DeepSeekTranslator, TranslationChunk
 
+        from translation_compat import TranslationClient, translate_batches
+
         if not self.key():
             raise RuntimeError("缺少 DeepSeek 密钥；在原项目中保存，或设置 DEEPSEEK_API_KEY。")
-        pending = [
-            Sentence(
-                id=s["id"],
-                start_seconds=s["start"],
-                end_seconds=s["end"],
-                source_text=s["ja"],
-            )
-            for s in segments
-            if not s.get("zh", "").strip()
-        ]
-        if not pending:
+        if not any(not s.get("zh", "").strip() for s in segments):
             return
-        with DeepSeekTranslator(
-            api_key=self.key(),
-            model="deepseek-v4-flash",
-            max_retries=1,
-            timeout_seconds=180,
-        ) as translator:
+        with (
+            TranslationClient(timeout=180) as client,
+            DeepSeekTranslator(
+                api_key=self.key(),
+                model="deepseek-v4-flash",
+                max_retries=1,
+                timeout_seconds=180,
+                client=client,
+            ) as translator,
+        ):
             translator.system_prompt += (
                 "\n这是耳机音声的中文配音稿：保留原意、亲密程度、语气和称谓；使用简短自然口语，"
                 "避免扩写，以接近日文的说话时长。不要额外添加动作、旁白或括号中的表演指令。"
+                "\n输出 JSON 的 translations 数组，每项只允许 id 和 zh；不要返回 source 字段。"
             )
-            for start in range(0, len(pending), 20):
-                batch = pending[start : start + 20]
-                mapping = translator.translate_chunk(
+
+            def request_batch(items):
+                batch = [
+                    Sentence(
+                        id=s["id"],
+                        start_seconds=s["start"],
+                        end_seconds=s["end"],
+                        source_text=s["ja"],
+                    )
+                    for s in items
+                ]
+                return translator.translate_chunk(
                     TranslationChunk(sentences=batch), "[]", "[]", "asmr-spatial-lab"
                 )
-                for segment in segments:
-                    if segment["id"] in mapping:
-                        segment["zh"] = mapping[segment["id"]]
+
+            translate_batches(segments, request_batch, checkpoint)
 
     def synthesize(self, tasks: list[dict], workspace: Path) -> None:
         batch = workspace / "tts_tasks.json"

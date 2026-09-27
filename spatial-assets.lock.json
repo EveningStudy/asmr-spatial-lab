@@ -1,0 +1,40 @@
+{
+  "meta_revision": "81d0765ae590e8f69d3d26dc03f8a2e9c02b7d03",
+  "files": {
+    "nearfield.sofa": {
+      "url": "https://zenodo.org/records/7316545/files/NF_LIB_HRTF_LFE.sofa?download=1",
+      "bytes": 1423403,
+      "sha256": "07e5bb16509b69043804e700461ced1b43b326b1c3a0c2e782d5d38344db5c7f"
+    },
+    "meta-3blocks.net": {
+      "url": "https://github.com/facebookresearch/BinauralSpeechSynthesis/releases/download/v1.1/binaural_network_3blocks.net",
+      "bytes": 34567035,
+      "sha256": "f10ca417ecce1aafcf631cd68a88c727c9c4ffd01134ac892816db903df507fd"
+    },
+    "meta/src/models.py": {
+      "url": "https://raw.githubusercontent.com/facebookresearch/BinauralSpeechSynthesis/81d0765ae590e8f69d3d26dc03f8a2e9c02b7d03/src/models.py",
+      "bytes": 7635,
+      "sha256": "522efa70635fcfff2a2817737c4b5dd93ed1b45cd98c58e01fac46bd1ce0cdbb"
+    },
+    "meta/src/hyperconv.py": {
+      "url": "https://raw.githubusercontent.com/facebookresearch/BinauralSpeechSynthesis/81d0765ae590e8f69d3d26dc03f8a2e9c02b7d03/src/hyperconv.py",
+      "bytes": 5336,
+      "sha256": "294065eae6d8a11beb6cb4e470f63bc64e315ed907c69de84dc4de3a0dd3349a"
+    },
+    "meta/src/warping.py": {
+      "url": "https://raw.githubusercontent.com/facebookresearch/BinauralSpeechSynthesis/81d0765ae590e8f69d3d26dc03f8a2e9c02b7d03/src/warping.py",
+      "bytes": 4259,
+      "sha256": "e4e8ab6655651ffc4b32c55a6c31c60facf8490bbae41b7dd55b456c9ba60727"
+    },
+    "meta/src/utils.py": {
+      "url": "https://raw.githubusercontent.com/facebookresearch/BinauralSpeechSynthesis/81d0765ae590e8f69d3d26dc03f8a2e9c02b7d03/src/utils.py",
+      "bytes": 9708,
+      "sha256": "4fd9e30e139eb31c8325975c5d1337fbd60fd6dac0dc07442433986f58f53245"
+    },
+    "meta/LICENSE": {
+      "url": "https://raw.githubusercontent.com/facebookresearch/BinauralSpeechSynthesis/81d0765ae590e8f69d3d26dc03f8a2e9c02b7d03/LICENSE",
+      "bytes": 19331,
+      "sha256": "4b531055125dcda36059651634bdb424ad2612f4759b3d2067a731d2823d1cdc"
+    }
+  }
+}

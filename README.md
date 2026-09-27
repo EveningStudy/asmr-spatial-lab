@@ -2,6 +2,12 @@
 
 English | [简体中文](README.zh-CN.md)
 
+## Project status
+
+Development is paused as of September 27, 2026. This repository is retained as an experimental record. In the owner's listening tests, RTF was preferred over the added HRTF and Meta baselines, but overall quality did not meet the original goal. This is subjective feedback, not a general benchmark. No further development is currently planned.
+
+**New:** measured near-field HRTF and the official Meta 3-block neural renderer are available as additional baselines. Use `run --all-methods` or `compare --all-methods` for five-way comparisons. See [setup, usage, assumptions and licenses](SPATIAL_COMPARISON.md). Both use estimated, not ground-truth, positions; neither is a claim of improved listening quality.
+
 A command-line experiment for converting Japanese binaural recordings into Chinese dubbing while attempting to preserve the speaker's voice and the original spatial impression.
 
 **Subjective results are currently underwhelming.** This repository records experiments and implementation details; it is not a production dubbing tool or a claim of state-of-the-art spatial audio quality. Better numerical metrics do not necessarily mean greater similarity to the original recording.
@@ -22,12 +28,14 @@ No ground-truth 3D coordinates or head-tracking data are required. The prototype
 Japanese two-channel recording
   → Parakeet CTC 1.1B transcription and segmentation
   → DeepSeek V4 Flash translation
-  → IndexTTS-2.5 voice cloning with phrase-level style references
-  → Native speaking-rate adjustment + Rubber Band pitch-preserving timing alignment
+  → IndexTTS-2.0 voice cloning with phrase-level style references
+  → Rubber Band pitch-preserving timing alignment
   → Spatial rendering: centered control / binaural cue transfer / complex RTF transfer
 ```
 
 Audio processing runs locally. Only text is sent to DeepSeek for translation. All three spatial versions reuse the same synthesized Chinese speech, so TTS randomness is not mistaken for a difference between spatial algorithms.
+
+The current backend is IndexTTS 2.0; earlier experiment records used 2.5. Cache keys distinguish the versions, so resuming an older run regenerates Chinese speech with 2.0 instead of silently reusing 2.5 clips. Existing cached clips remain on disk. The 2.0 adapter does not pass 2.5-only language or native duration parameters; timing adjustment uses Rubber Band. `compare` follows the backend recorded in the completed run.
 
 ### Baseline 1: Binaural cue transfer
 
@@ -67,7 +75,7 @@ See [VALIDATION.md](VALIDATION.md) and [RTF_VALIDATION.md](RTF_VALIDATION.md) fo
 
 This is a Windows test program that depends on an existing environment, **not a standalone, ready-to-run distribution**.
 
-Prepare the [ASMR Dubber](https://github.com/EveningStudy/asmr-dubber) source, main Python environment, Parakeet 1.1B/CrispASR installation, and isolated IndexTTS-2.5 environment and models in a neighboring `asmr-next` directory. The adapter reuses its ASR timestamp parsing, translation code, and local resources.
+Prepare the [ASMR Dubber](https://github.com/EveningStudy/asmr-dubber) source, main Python environment, Parakeet 1.1B/CrispASR installation, and isolated IndexTTS-2.0 environment and models in a neighboring `asmr-next` directory. The adapter reuses its ASR timestamp parsing, translation code, and local resources.
 
 ```text
 Projects/
@@ -111,6 +119,6 @@ With another Python environment, install `requirements.txt` and run `python dub.
 - Chinese speech is placed within sentence windows, with spatial trajectories mapped by within-sentence progress. Words, movements, and breaths are not guaranteed to align precisely.
 - There is no source separation. Output is silent outside recognized sentence windows, and original breaths and sound effects are not automatically retained.
 - Strong reverberation, multiple speakers, independent signals at each ear, occlusion, and rapid movement can cause unreliable estimates or timbral distortion.
-- BinauralGrad, BinauralFlow, measured near-field HRTF rendering, and other alternative approaches have not been implemented.
+- BinauralGrad and BinauralFlow have not been implemented. Measured HRTF and Meta BinauralSpeechSynthesis are optional comparison backends, described separately above.
 
 This public repository contains only source code, tests, and experiment documentation—not source audio, generated audio, model weights, API keys, or runtime caches. Use material for which you have the appropriate permissions, and do not present cloned output as an authentic recording of the person.

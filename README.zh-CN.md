@@ -2,6 +2,12 @@
 
 [English](README.md) | 简体中文
 
+## 项目状态
+
+截至 2026 年 9 月 27 日，项目暂时停止开发，保留仓库用于记录实验。作者试听更偏好 RTF，而非新增的 HRTF 和 Meta 基线，但整体效果仍未达到最初目标。这是主观试听反馈，不是通用性能结论；目前没有继续开发计划。
+
+**新增：** 实测近场 HRTF 和 Meta 官方 3-block 神经双耳模型。使用 `run --all-methods` 或 `compare --all-methods` 生成五种同源中文配音对照。[安装、使用及限制说明](SPATIAL_COMPARISON.md)。位置是估计值，不是真实追踪数据；已跑通不代表听感一定改善。
+
 一个用于记录实验的命令行测试项目：把日语双声道音声转换为中文配音，尝试同时保留说话人的音色和原录音的空间听感。
 
 **目前主观效果一般。** 项目用于验证方法和保留实验过程，不是成熟配音产品，也不代表最佳空间音频方案。算法指标改善不等于听起来更像原作。
@@ -22,12 +28,14 @@
 日语双声道录音
   → Parakeet CTC 1.1B 识别与分句
   → DeepSeek V4 Flash 翻译
-  → IndexTTS-2.5 音色克隆与逐句风格参考
-  → 原生语速调整 + Rubber Band 保音高时长对齐
+  → IndexTTS-2.0 音色克隆与逐句风格参考
+  → Rubber Band 保音高时长对齐
   → 空间渲染：居中对照 / 双耳线索迁移 / 复数 RTF 迁移
 ```
 
 音频在本地处理，翻译阶段仅向 DeepSeek 发送文本。三个空间版本复用同一份中文配音，避免把 TTS 随机变化误当成空间算法差异。
+
+当前后端为 IndexTTS 2.0，早期实验记录使用过 2.5。缓存键区分版本：继续旧任务时会用 2.0 重新生成中文，不会误用 2.5 缓存；已有缓存仍保留。2.0 适配器不传入 2.5 专属的语言或原生时长参数，时长调整使用 Rubber Band。`compare` 根据已完成任务报告中的版本复用缓存。
 
 ### 基线一：双耳线索迁移
 
@@ -67,7 +75,7 @@
 
 这是依赖已有环境的 Windows 测试程序，**不是下载后即可独立运行的整合包**。
 
-需要在相邻的 `asmr-next` 目录中准备好 [ASMR Dubber](https://github.com/EveningStudy/asmr-dubber) 源码、主 Python 环境、Parakeet 1.1B/CrispASR、IndexTTS-2.5 隔离环境及模型。适配器复用其 ASR 时间戳解析、翻译代码和本地资源。
+需要在相邻的 `asmr-next` 目录中准备好 [ASMR Dubber](https://github.com/EveningStudy/asmr-dubber) 源码、主 Python 环境、Parakeet 1.1B/CrispASR、IndexTTS-2.0 隔离环境及模型。适配器复用其 ASR 时间戳解析、翻译代码和本地资源。
 
 ```text
 Projects/
@@ -111,6 +119,6 @@ cd asmr-spatial-lab
 - 中文按句子时间窗放置，空间轨迹按句内进度映射，不保证词语、动作和呼吸逐点对应。
 - 不做源分离，识别句子之外输出静音，不自动保留原呼吸和音效。
 - 强混响、多人、耳间独立信号、遮挡和快速移动可能导致估计不可靠或音色失真。
-- 没有实现 BinauralGrad、BinauralFlow、实测近场 HRTF 渲染等其他方案。
+- 没有实现 BinauralGrad、BinauralFlow；实测近场 HRTF 和 Meta BinauralSpeechSynthesis 已作为可选对照后端接入，见上方独立说明。
 
 公开内容仅为源码、测试和实验说明，不包含原音频、生成音频、模型权重、密钥或运行缓存。请使用具有相应权限的素材，不将克隆结果冒充真实本人录音。

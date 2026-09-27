@@ -4,7 +4,7 @@
 
 ## 已验证
 
-- 复用现有 Parakeet CTC 1.1B、DeepSeek V4 Flash、IndexTTS-2.5（现有隔离环境）。
+- 当前实现复用现有 Parakeet CTC 1.1B、DeepSeek V4 Flash、IndexTTS-2.0（现有隔离环境）。早期记录曾使用 2.5。
 - 真实调用 DeepSeek 翻译日文，未上传音频，未输出或复制 API Key。
 - 3.752 秒/2 句，以及 15 秒/4 句测试，都完成识别、翻译、克隆、时长调整、双耳渲染。
 - 11 个自动测试通过；Ruff 检查、格式检查通过。

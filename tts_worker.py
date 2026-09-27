@@ -1,4 +1,4 @@
-"""Runs only inside the existing isolated IndexTTS-2.5 environment."""
+"""Runs only inside the existing isolated IndexTTS-2.0 environment."""
 
 from __future__ import annotations
 
@@ -26,21 +26,20 @@ def main():
     args = parser.parse_args()
     import numpy as np
     import torch
-    from indextts.infer_v2_5 import IndexTTS2
+    from indextts.infer_v2 import IndexTTS2
 
     if not torch.cuda.is_available():
-        raise RuntimeError("现有 IndexTTS-2.5 环境的 CUDA 不可用")
+        raise RuntimeError("现有 IndexTTS-2.0 环境的 CUDA 不可用")
     tasks = json.loads(args.tasks.read_text(encoding="utf-8"))
     model = IndexTTS2(
         cfg_path=str(args.model_dir / "config.yaml"),
         model_dir=str(args.model_dir),
         device="cuda",
-        use_bf16=torch.cuda.is_bf16_supported(),
+        use_fp16=True,
         use_cuda_kernel=False,
         use_deepspeed=False,
         use_accel=False,
         use_torch_compile=False,
-        use_qwen_emo=False,
     )
     results = []
     for index, task in enumerate(tasks):
@@ -51,7 +50,6 @@ def main():
         kwargs = dict(
             spk_audio_prompt=task["voice"],
             text=task["text"],
-            lang="ZH",
             output_path=str(pending_output),
             emo_audio_prompt=task["emotion"],
             emo_alpha=0.6,
@@ -66,28 +64,17 @@ def main():
             num_beams=3,
             repetition_penalty=10.0,
             max_mel_tokens=1500,
-            duration_factor=1.0,
         )
         print(f"[{index + 1}/{len(tasks)}] {task['id']}: synthesize", flush=True)
         model.infer(**kwargs)
         duration = active_duration(pending_output)
-        ratio = task["target_seconds"] / duration
-        # Native speed correction before the final pitch-preserving fine alignment.
-        # Keep the model loaded, and make at most one extra generation per phrase.
-        if not 0.82 <= ratio <= 1.22:
-            kwargs["duration_factor"] = float(np.clip(ratio, 0.5, 2.0))
-            print(
-                f"{task['id']}: duration correction {kwargs['duration_factor']:.3f}",
-                flush=True,
-            )
-            model.infer(**kwargs)
-            duration = active_duration(pending_output)
+        # IndexTTS 2.0 has no supported duration_factor; align with Rubber Band later.
         pending_output.replace(final_output)
         results.append(
             {
                 "id": task["id"],
                 "generated_seconds": duration,
-                "duration_factor": kwargs["duration_factor"],
+                "tts_backend": "indextts2.0",
             }
         )
         print(f"Generated: {task['id']}", flush=True)
